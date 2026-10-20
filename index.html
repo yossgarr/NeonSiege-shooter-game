@@ -3,21 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NEON SIEGE — 3D FPS Shooter</title>
+<title>BLOOD TRAIL SANDBOX — 3D FPS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --cyan:#19f0ff; --mag:#ff2d95; --amber:#ffc531; --green:#3dff8b; --red:#ff3b4e;
+  --cyan:#19f0ff; --amber:#ffc531; --red:#ff3b4e; --blood:#b3121c;
   --panel:rgba(8,12,22,.62);
   --font:'Rajdhani','Segoe UI',Tahoma,sans-serif; --display:'Orbitron','Rajdhani','Segoe UI',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#05070d;color:#dfeaff;font-family:var(--font)}
 canvas#view{position:fixed;inset:0;width:100%;height:100%;display:block}
+canvas#bloodScreen{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;z-index:4}
 
 /* ---------- HUD ---------- */
-#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+#hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;z-index:5}
 #hud.on{opacity:1}
 .panel{background:var(--panel);border:1px solid rgba(25,240,255,.25);border-radius:4px;backdrop-filter:blur(3px);
   box-shadow:0 0 18px rgba(25,240,255,.08) inset}
@@ -26,22 +27,12 @@ canvas#view{position:fixed;inset:0;width:100%;height:100%;display:block}
 #stats .box{padding:6px 14px;min-width:92px}
 #stats .lbl{font-size:12px;letter-spacing:.2em;color:#7fa0c8;font-weight:600}
 #stats .val{font-family:var(--display);font-size:24px;font-weight:800;color:#fff;text-shadow:0 0 10px var(--cyan)}
-#stats .val.warn{color:var(--amber);text-shadow:0 0 10px var(--amber)}
+#stats .val.red{color:#ff6b78;text-shadow:0 0 10px var(--blood)}
 
-#radarWrap{position:absolute;top:18px;right:18px;width:164px;height:164px;border-radius:50%;padding:0;overflow:hidden;
-  border:2px solid rgba(25,240,255,.4);box-shadow:0 0 22px rgba(25,240,255,.2)}
-#radar{width:100%;height:100%;display:block}
-
-#vitals{position:absolute;left:22px;bottom:22px;width:330px}
-.bar{position:relative;height:22px;margin-top:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);overflow:hidden;
-  clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%)}
-.bar i{position:absolute;inset:0;width:100%;transform-origin:left;transition:transform .15s}
-.bar#hp i{background:linear-gradient(90deg,#ff2d55,#ff6a3d);box-shadow:0 0 14px #ff2d55}
-.bar#ar i{background:linear-gradient(90deg,#1b8cff,#19f0ff);box-shadow:0 0 14px #19f0ff}
-.bar span{position:absolute;left:10px;top:0;line-height:22px;font-weight:700;font-size:14px;letter-spacing:.12em;text-shadow:0 1px 3px #000}
-.bar b{position:absolute;right:18px;top:0;line-height:22px;font-family:var(--display);font-weight:800;font-size:14px;text-shadow:0 1px 3px #000}
-#hp.low{animation:pulse .6s infinite alternate}
-@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.9)}}
+#keys{position:absolute;left:18px;bottom:22px;padding:10px 16px;font-size:15px;font-weight:600;line-height:1.7;color:#c7d6ee}
+#keys b{color:var(--cyan);letter-spacing:.2em;font-size:12px;display:block;margin-bottom:2px}
+kbd{display:inline-block;min-width:24px;padding:0 6px;margin-right:4px;text-align:center;font-family:var(--font);font-weight:700;
+  background:#16233a;border:1px solid #3a5a86;border-bottom-width:3px;border-radius:4px;color:#fff;font-size:14px}
 
 #ammoBox{position:absolute;right:22px;bottom:22px;text-align:right;padding:10px 18px 12px}
 #wname{font-size:15px;letter-spacing:.3em;color:var(--cyan);font-weight:700}
@@ -57,73 +48,52 @@ canvas#view{position:fixed;inset:0;width:100%;height:100%;display:block}
 #crosshair .h{width:9px;height:2px;margin-top:-1px}
 #crosshair .v{width:2px;height:9px;margin-left:-1px}
 #crosshair .dot{width:3px;height:3px;margin:-1.5px 0 0 -1.5px;border-radius:50%;background:var(--cyan)}
-#crosshair.hide{display:none}
 #hit{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;opacity:0;transition:opacity .25s}
 #hit.on{opacity:1;transition:none}
 #hit.head line{stroke:var(--red)}
 #hit line{stroke:#fff;stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 3px #000)}
 
-#vignette{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,0,30,.75) 100%)}
-#lowhp{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse at center,transparent 55%,rgba(255,0,30,.5) 100%);animation:pulse2 1s infinite alternate}
-@keyframes pulse2{from{opacity:.25}to{opacity:.9}}
-#dirs{position:absolute;left:50%;top:50%;width:0;height:0}
-.dir{position:absolute;width:260px;height:260px;margin:-130px 0 0 -130px;opacity:.9;transition:opacity .9s}
-.dir::before{content:"";position:absolute;left:50%;top:-26px;width:90px;height:26px;margin-left:-45px;
-  background:radial-gradient(ellipse at 50% 100%,rgba(255,40,60,.95),transparent 70%);filter:blur(1px)}
-
-#banner{position:absolute;left:0;right:0;top:20%;text-align:center;opacity:0;transform:scale(1.2);transition:all .5s}
-#banner.on{opacity:1;transform:scale(1)}
-#banner h1{font-family:var(--display);font-size:56px;font-weight:900;letter-spacing:.2em;color:#fff;text-shadow:0 0 24px var(--cyan),0 0 60px var(--cyan)}
-#banner p{font-size:20px;letter-spacing:.35em;color:var(--amber);margin-top:6px;font-weight:700}
 #popups{position:absolute;left:50%;top:50%;width:0;height:0}
 .pop{position:absolute;white-space:nowrap;font-family:var(--display);font-weight:800;font-size:18px;color:var(--amber);
   text-shadow:0 0 8px #000,0 0 12px var(--amber);animation:rise 1.1s forwards}
 .pop.head{color:var(--red);font-size:22px;text-shadow:0 0 8px #000,0 0 14px var(--red)}
 @keyframes rise{from{transform:translate(var(--x),40px);opacity:1}to{transform:translate(var(--x),-40px);opacity:0}}
-#hint{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);font-weight:700;letter-spacing:.2em;font-size:18px;color:var(--amber);
-  text-shadow:0 0 10px #000;opacity:0;transition:opacity .2s}
-#hint.on{opacity:1}
-#msg{position:absolute;left:50%;top:32%;transform:translateX(-50%);font-weight:700;letter-spacing:.18em;font-size:17px;color:#cfe;
-  text-shadow:0 0 8px #000;opacity:0;transition:opacity .4s;text-align:center}
+#padHint{position:absolute;left:50%;top:62%;transform:translateX(-50%);font-weight:700;letter-spacing:.18em;font-size:17px;color:var(--amber);
+  text-shadow:0 0 10px #000;opacity:0;transition:opacity .15s;white-space:nowrap}
+#padHint.on{opacity:1}
+#msg{position:absolute;left:50%;top:18%;transform:translateX(-50%);font-weight:700;letter-spacing:.16em;font-size:17px;color:#e8f4ff;
+  text-shadow:0 0 8px #000;opacity:0;transition:opacity .4s;text-align:center;white-space:nowrap}
 #msg.on{opacity:1}
+#slowTag{position:absolute;right:22px;top:18px;font-family:var(--display);font-weight:800;letter-spacing:.3em;font-size:16px;color:var(--red);opacity:0;transition:opacity .15s}
+#slowTag.on{opacity:1}
 #fps{position:absolute;left:18px;top:84px;font-size:12px;color:#5f7a99;letter-spacing:.1em}
-#scope{position:absolute;inset:0;opacity:0;transition:opacity .08s;
-  background:radial-gradient(circle at center,transparent 0,transparent 28vmin,#000 28.4vmin)}
-#scope.on{opacity:1}
-#scope::before,#scope::after{content:"";position:absolute;background:rgba(255,40,60,.85)}
-#scope::before{left:50%;top:calc(50% - 28vmin);width:1px;height:56vmin}
-#scope::after{top:50%;left:calc(50% - 28vmin);height:1px;width:56vmin}
-#flash{position:absolute;inset:0;opacity:0;background:#fff;mix-blend-mode:screen}
 
 /* ---------- Screens ---------- */
 .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;
-  background:radial-gradient(ellipse at center,rgba(8,14,30,.55),rgba(2,4,10,.9));z-index:10}
+  background:linear-gradient(180deg,rgba(4,6,12,.78) 0%,rgba(4,6,12,.12) 38%,rgba(4,6,12,.12) 52%,rgba(4,6,12,.86) 100%);z-index:10}
+#menu{justify-content:space-between;padding:26px 0 18px}
+#menu .cols{margin-top:0}
 .screen.on{display:flex}
-.logo{font-family:var(--display);font-weight:900;font-size:clamp(40px,8vw,104px);letter-spacing:.12em;line-height:1;
-  background:linear-gradient(180deg,#fff 10%,var(--cyan) 55%,#1458ff);-webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 22px rgba(25,240,255,.55))}
-.logo span{background:linear-gradient(180deg,#fff 10%,var(--mag) 60%,#8a1fff);-webkit-background-clip:text;background-clip:text;color:transparent;
-  filter:drop-shadow(0 0 22px rgba(255,45,149,.6))}
-.tag{letter-spacing:.5em;color:#7fa0c8;margin:10px 0 34px;font-weight:600;font-size:16px}
+.logo{font-family:var(--display);font-weight:900;font-size:clamp(38px,7.4vw,96px);letter-spacing:.1em;line-height:1;
+  background:linear-gradient(180deg,#fff 10%,#e24a52 55%,#7d0a12);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 22px rgba(190,20,30,.6))}
+.logo span{background:linear-gradient(180deg,#fff 10%,var(--cyan) 60%,#1458ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 22px rgba(25,240,255,.5))}
+.tag{text-shadow:0 0 8px #000,0 0 14px #000;letter-spacing:.45em;color:#b9cae2;margin:10px 0 28px;font-weight:600;font-size:15px}
 .btn{pointer-events:auto;cursor:pointer;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.25em;color:#04121a;
   background:var(--cyan);border:0;padding:16px 56px;clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);
   box-shadow:0 0 30px var(--cyan);transition:transform .15s,filter .15s}
 .btn:hover{transform:scale(1.06);filter:brightness(1.2)}
-.cols{display:flex;gap:26px;margin-top:34px;flex-wrap:wrap;justify-content:center}
+.cols{display:flex;gap:22px;margin-top:30px;flex-wrap:wrap;justify-content:center}
 .card{padding:14px 22px;text-align:left;min-width:230px}
 .card h3{font-family:var(--display);font-size:13px;letter-spacing:.25em;color:var(--cyan);margin-bottom:8px}
 .card p{font-size:16px;line-height:1.55;color:#c7d6ee;font-weight:600}
-kbd{display:inline-block;min-width:24px;padding:0 6px;margin-right:4px;text-align:center;font-family:var(--font);font-weight:700;
-  background:#16233a;border:1px solid #3a5a86;border-bottom-width:3px;border-radius:4px;color:#fff;font-size:14px}
 .set{display:flex;align-items:center;gap:10px;margin:3px 0;font-size:15px;font-weight:700;color:#c7d6ee}
-.set label{width:104px;letter-spacing:.1em;font-size:13px}
+.set label{width:112px;letter-spacing:.1em;font-size:13px}
 .set input{pointer-events:auto;flex:1;accent-color:var(--cyan)}
+.set input[type=checkbox]{flex:0 0 auto}
 .set output{width:34px;text-align:right;color:var(--cyan)}
-#hs{margin-top:22px;color:var(--amber);letter-spacing:.3em;font-weight:700}
-.result{display:grid;grid-template-columns:repeat(3,auto);gap:10px 40px;margin:28px 0 34px}
-.result div{font-size:12px;letter-spacing:.25em;color:#7fa0c8;font-weight:700}
-.result b{display:block;font-family:var(--display);font-size:32px;color:#fff;text-shadow:0 0 12px var(--cyan);margin-top:4px}
-#goTitle{font-family:var(--display);font-weight:900;font-size:clamp(40px,7vw,86px);letter-spacing:.14em;color:var(--red);text-shadow:0 0 34px var(--red)}
+.warn{margin-top:18px;font-size:13px;letter-spacing:.18em;color:#a5586a;font-weight:700}
 #loading{position:fixed;inset:0;z-index:30;background:#05070d;display:flex;align-items:center;justify-content:center;
   font-family:var(--display);letter-spacing:.4em;color:var(--cyan);transition:opacity .5s}
 #err{position:fixed;left:10px;bottom:10px;z-index:50;color:#ff8a8a;font:12px monospace;white-space:pre-wrap;max-width:80vw}
@@ -131,21 +101,17 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin-right:4px;text-alig
 </head>
 <body>
 <canvas id="view"></canvas>
+<canvas id="bloodScreen"></canvas>
 
 <div id="hud">
-  <div id="vignette"></div><div id="lowhp" style="display:none"></div>
-  <div id="scope"></div>
-  <div id="flash"></div>
-  <div id="dirs"></div>
-
   <div id="stats">
-    <div class="box panel"><div class="lbl">WAVE</div><div class="val" id="sWave">1</div></div>
-    <div class="box panel"><div class="lbl">SCORE</div><div class="val" id="sScore">0</div></div>
-    <div class="box panel"><div class="lbl">KILLS</div><div class="val" id="sKills">0</div></div>
-    <div class="box panel"><div class="lbl">HOSTILES</div><div class="val warn" id="sLeft">0</div></div>
+    <div class="box panel"><div class="lbl">HIDUP</div><div class="val" id="sAlive">0</div></div>
+    <div class="box panel"><div class="lbl">EKSEKUSI</div><div class="val red" id="sKills">0</div></div>
+    <div class="box panel"><div class="lbl">HEADSHOT</div><div class="val red" id="sHeads">0</div></div>
+    <div class="box panel"><div class="lbl">AKURASI</div><div class="val" id="sAcc">0%</div></div>
   </div>
   <div id="fps"></div>
-  <div id="radarWrap" class="panel"><canvas id="radar" width="164" height="164"></canvas></div>
+  <div id="slowTag">SLOW-MO</div>
 
   <div id="crosshair">
     <div class="h" id="chL"></div><div class="h" id="chR"></div>
@@ -154,47 +120,45 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin-right:4px;text-alig
   </div>
   <svg id="hit" viewBox="0 0 34 34"><line x1="4" y1="4" x2="12" y2="12"/><line x1="30" y1="4" x2="22" y2="12"/><line x1="4" y1="30" x2="12" y2="22"/><line x1="30" y1="30" x2="22" y2="22"/></svg>
   <div id="popups"></div>
-  <div id="banner"><h1 id="bTitle">WAVE 1</h1><p id="bSub"></p></div>
-  <div id="hint">RELOAD  [R]</div>
+  <div id="padHint"></div>
   <div id="msg"></div>
 
-  <div id="vitals">
-    <div class="bar" id="ar"><i></i><span>ARMOR</span><b>0</b></div>
-    <div class="bar" id="hp"><i></i><span>HEALTH</span><b>100</b></div>
+  <div id="keys" class="panel">
+    <b>SPAWN</b>
+    <kbd>F</kbd> Orang berdiri<br>
+    <kbd>G</kbd> Sandera berlutut<br>
+    <kbd>Z</kbd> Isi semua cincin &nbsp; <kbd>X</kbd> Bersihkan
   </div>
   <div id="ammoBox" class="panel">
-    <div id="wname">AR-7</div>
-    <div id="ammo">30<small>/ 120</small></div>
+    <div id="wname">PISTOL 9MM</div>
+    <div id="ammo">15<small>/ ∞</small></div>
     <div id="slots"></div>
   </div>
 </div>
 
 <div id="menu" class="screen on">
-  <div class="logo">NEON <span>SIEGE</span></div>
-  <div class="tag">3D FIRST PERSON SHOOTER</div>
-  <button class="btn" id="btnStart">MULAI GAME</button>
-  <div id="hs"></div>
+  <div class="logo">BLOOD <span>TRAIL</span></div>
+  <div class="tag">SANDBOX EKSEKUSI 3D</div>
+  <button class="btn" id="btnStart">MULAI</button>
   <div class="cols">
     <div class="card panel"><h3>KONTROL</h3>
-      <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Bergerak<br>
-      <kbd>Shift</kbd> Lari &nbsp; <kbd>Space</kbd> Lompat<br>
-      <kbd>C</kbd> Jongkok &nbsp; <kbd>R</kbd> Reload<br>
-      <kbd>Klik Kiri</kbd> Tembak<br>
-      <kbd>Klik Kanan</kbd> Bidik (ADS)<br>
-      <kbd>1</kbd>-<kbd>4</kbd> / Scroll Ganti senjata<br>
-      <kbd>M</kbd> Musik &nbsp; <kbd>Esc</kbd> Jeda</p></div>
+      <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Bergerak &nbsp; <kbd>Shift</kbd> Lari<br>
+      <kbd>Space</kbd> Lompat &nbsp; <kbd>C</kbd> Jongkok<br>
+      <kbd>Klik Kiri</kbd> Tembak &nbsp; <kbd>Klik Kanan</kbd> Bidik<br>
+      <kbd>R</kbd> Reload &nbsp; <kbd>1</kbd><kbd>2</kbd> / Scroll Senjata<br>
+      <kbd>F</kbd> Spawn orang berdiri<br>
+      <kbd>G</kbd> Spawn sandera berlutut<br>
+      <kbd>Z</kbd> Isi semua cincin &nbsp; <kbd>X</kbd> Bersihkan<br>
+      <kbd>T</kbd> Slow-mo &nbsp; <kbd>M</kbd> Suara &nbsp; <kbd>Esc</kbd> Jeda</p></div>
     <div class="card panel"><h3>PENGATURAN</h3>
       <div class="set"><label>SENSITIVITAS</label><input type="range" id="optSens" min="1" max="10" step="0.5" value="4"><output id="oSens">4</output></div>
-      <div class="set"><label>FOV</label><input type="range" id="optFov" min="60" max="110" step="1" value="82"><output id="oFov">82</output></div>
+      <div class="set"><label>FOV</label><input type="range" id="optFov" min="60" max="110" step="1" value="80"><output id="oFov">80</output></div>
       <div class="set"><label>VOLUME</label><input type="range" id="optVol" min="0" max="100" step="5" value="70"><output id="oVol">70</output></div>
       <div class="set"><label>BAYANGAN</label><input type="checkbox" id="optShadow" checked></div>
+      <div class="set"><label>SLOW-MO HEADSHOT</label><input type="checkbox" id="optSlow" checked></div>
     </div>
-    <div class="card panel"><h3>MISI</h3>
-      <p>Bertahan dari gelombang robot tempur.<br>
-      <b style="color:#ffb15c">Grunt</b> menembak, <b style="color:#ff5470">Runner</b> menyerang jarak dekat,<br>
-      <b style="color:#b78cff">Heavy</b> tank berat, <b style="color:#5cf">Drone</b> melayang.<br>
-      Tembak kepala = 2.5× damage.</p></div>
-  </div>
+    </div>
+  <div class="warn">⚠ KONTEN KEKERASAN GRAFIS FIKSI — KHUSUS DEWASA</div>
 </div>
 
 <div id="pause" class="screen">
@@ -203,23 +167,17 @@ kbd{display:inline-block;min-width:24px;padding:0 6px;margin-right:4px;text-alig
   <button class="btn" id="btnResume">LANJUTKAN</button>
 </div>
 
-<div id="over" class="screen">
-  <div id="goTitle">GAME OVER</div>
-  <div class="result">
-    <div>GELOMBANG<b id="rWave">0</b></div><div>SKOR<b id="rScore">0</b></div><div>KILLS<b id="rKills">0</b></div>
-    <div>HEADSHOT<b id="rHead">0</b></div><div>AKURASI<b id="rAcc">0%</b></div><div>REKOR<b id="rBest">0</b></div>
-  </div>
-  <button class="btn" id="btnRestart">MAIN LAGI</button>
-</div>
-
 <div id="loading">MEMUAT...</div>
 <div id="err"></div>
 
 <script src="lib/three.min.js"></script>
+<script src="lib/cannon.min.js"></script>
 <script src="js/world.js"></script>
+<script src="js/physics.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/fx.js"></script>
-<script src="js/enemies.js"></script>
+<script src="js/blood.js"></script>
+<script src="js/human.js"></script>
 <script src="js/weapons.js"></script>
 <script src="js/game.js"></script>
 </body>

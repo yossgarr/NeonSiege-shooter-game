@@ -131,19 +131,11 @@ function updateFlashes(dt) {
 
 /* ---------------- reusable effect recipes ---------------- */
 const SPARK = [0xffd27a, 0xffa23a, 0xfff2c8];
+const CHIPS = [0xf2f4f5, 0xcfd4d8, 0xe6e9ec, 0x9aa1a8];
+// bullet hitting the ceramic room: chips fly off, a puff of dust, a little spark, and a bullet hole
 function wallImpact(x, y, z, nx, ny, nz, big) {
-  emit(x, y, z, big ? 10 : 6, { color: SPARK, speed: 5, life: 0.35, size: 0.045, grav: 14, dir: { x: nx, y: ny, z: nz }, cone: 0.9, hdr: 2 });
-  emit(x, y, z, 3, { color: 0x6b7385, speed: 2, life: 0.5, size: 0.07, grav: 8, dir: { x: nx, y: ny, z: nz }, cone: 1.2 });
-  addFlash(x + nx * 0.05, y + ny * 0.05, z + nz * 0.05, 0xffc060, 0.35, 0.08, 0.5);
+  emit(x, y, z, big ? 12 : 7, { color: CHIPS, speed: 4.5, life: 0.6, size: 0.04, grav: 14, dir: { x: nx, y: ny, z: nz }, cone: 0.9 });
+  emit(x, y, z, 3, { color: SPARK, speed: 5, life: 0.25, size: 0.03, grav: 10, dir: { x: nx, y: ny, z: nz }, cone: 0.9, hdr: 2 });
+  addFlash(x + nx * 0.05, y + ny * 0.05, z + nz * 0.05, 0xd8dce0, big ? 0.8 : 0.5, 0.28, 1.2);
   addHole(x, y, z, nx, ny, nz, big ? 0.3 : 0.2);
-}
-function robotHit(x, y, z, dirx, diry, dirz, head, color) {
-  emit(x, y, z, head ? 16 : 10, { color: [0xffd27a, 0xffffff, color], speed: 6, life: 0.4, size: 0.05, grav: 10, dir: { x: -dirx, y: -diry, z: -dirz }, cone: 0.9, hdr: 2 });
-  addFlash(x, y, z, head ? 0xff5060 : 0xffd27a, head ? 0.8 : 0.5, 0.1, 0.8);
-}
-function deathBlast(x, y, z, color, scale) {
-  emit(x, y, z, 40, { color: [color, 0xffd27a, 0xffffff, 0x333a48], speed: 9 * scale, life: 0.9, size: 0.12 * scale, grav: 12, hdr: 1.6 });
-  emit(x, y, z, 14, { color: 0xffe0a0, speed: 5, life: 0.5, size: 0.2 * scale, grav: -1, hdr: 2 });
-  addFlash(x, y, z, color, 2.4 * scale, 0.35, 1.2);
-  addFlash(x, y, z, 0xffffff, 1.0 * scale, 0.12, 0.6);
 }
